@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自然現象インタラクティブ・ラボ</title>
+  <style>
+    :root {
+      --bg-color: #f0f4f8;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #f59e0b;
+      --text: #1f2937;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      color: #1e3a8a;
+      font-size: 1.8rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: #e2e8f0;
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      background: #cbd5e1;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    canvas {
+      width: 100%;
+      height: 360px;
+      background: #eef2ff;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button.btn {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button.btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .status-panel {
+      font-family: monospace;
+      background: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+      flex-grow: 1;
+    }
+
+    .explanation {
+      margin-top: 15px;
+      padding: 12px 16px;
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      border-radius: 0 6px 6px 0;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🌍 自然現象サイエンス・ラボ</h1>
+    <p>見て、動かして、メカニズム（原因）を学ぼう！</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('cloud')">☁️ 雲のでき方</button>
+    <button class="tab-btn" onclick="switchTab('earthquake')">🌋 地震のメカニズム</button>
+    <button class="tab-btn" onclick="switchTab('foehn')">⛰️ フェーン現象</button>
+    <button class="tab-btn" onclick="switchTab('elnino')">🌊 エルニーニョ現象</button>
+  </div>
+
+  <div class="card">
+    <canvas id="simCanvas" width="800" height="360"></canvas>
+    
+    <div class="controls" id="controls">
+      <!-- JavaScriptで各現象に応じたコントロールを挿入 -->
+    </div>
+
+    <div class="explanation" id="explanation">
+      <!-- 解説テキスト -->
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const controlsDiv = document.getElementById('controls');
+  const expDiv = document.getElementById('explanation');
+
+  let currentTab = 'cloud';
+  let animId = null;
+  let state = {};
+
+  function switchTab(tabName) {
+    currentTab = tabName;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabName));
+    });
+    initSimulation();
+  }
+
+  function initSimulation() {
+    if (animId) cancelAnimationFrame(animId);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (currentTab === 'cloud') {
+      state = { height: 0, temp: 25, dewPoint: 15, cloudSize: 0, rising: false };
+      controlsDiv.innerHTML = `
+        <button class="btn" onclick="state.rising = true">空気塊を上昇させる ⬆️</button>
+        <button class="btn" onclick="initSimulation()">リセット 🔄</button>
+        <div class="status-panel" id="status">高度: 0m | 気温: 25.0℃ | 状態: 地表（乾燥）</div>
+      `;
+      expDiv.innerHTML = `
+        <strong>【解説】雲ができる原因：</strong><br>
+        温かい空気が上昇すると、上空の気圧が低いため<strong>断熱膨張</strong>を起こして温度が下がります（約100mで1℃下降）。<br>
+        気温が露点（水蒸気が水滴になる温度）まで下がると、水蒸気が凝縮して雲（水滴の集まり）が作られます。
+      `;
+      loopCloud();
+    } 
+    else if (currentTab === 'earthquake') {
+      state = { strain: 0, shaking: 0, rebound: false };
+      controlsDiv.innerHTML = `
+        <button class="btn" onclick="addStrain()">海側プレートを押し込む ➡️</button>
+        <button class="btn" onclick="initSimulation()">リセット 🔄</button>
+        <div class="status-panel" id="status">ひずみ蓄積: 0%</div>
+      `;
+      expDiv.innerHTML = `
+        <strong>【解説】海溝型地震の原因：</strong><br>
+        海側のプレートが沈み込む際、陸側のプレートの引き込みにより<strong>ひずみ（エネルギー）</strong>が蓄積されます。<br>
+        限界に達すると、曲げられていた陸側プレートが一気に跳ね返り、巨大な地震と津波を発生させます。
+      `;
+      loopEarthquake();
+    }
+    else if (currentTab === 'foehn') {
+      state = { x: 50, y: 300, stage: 'sea', temp: 20, rain: false };
+      controlsDiv.innerHTML = `
+        <button class="btn" onclick="state.moving = true">湿った風を吹かせる 💨</button>
+        <button class="btn" onclick="initSimulation()">リセット 🔄</button>
+        <div class="status-panel" id="status">位置: 海側 | 空気塊の気温: 20.0℃</div>
+      `;
+      expDiv.innerHTML = `
+        <strong>【解説】フェーン現象の原因：</strong><br>
+        湿った空気は山を登る際、雨を降らせながらゆっくり冷えます（水蒸気の凝縮熱のため約0.5℃/100m）。<br>
+        水分を失った空気は、山を駆け下りるときに急速に温まる（乾燥減率 約1.0℃/100m）ため、山を越えた先では<strong>高温で乾燥した風</strong>が吹きます。
+      `;
+      loopFoehn();
+    }
+    else if (currentTab === 'elnino') {
+      state = { mode: 'normal' };
+      controlsDiv.innerHTML = `
+        <button class="btn" onclick="setElninoMode('normal')">通常時</button>
+        <button class="btn" onclick="setElninoMode('elnino')" style="background:#ef4444;">エルニーニョ現象</button>
+        <button class="btn" onclick="setElninoMode('lanina')" style="background:#06b6d4;">ラニーニャ現象</button>
+        <div class="status-panel" id="status">モード: 通常時</div>
+      `;
+      expDiv.innerHTML = `
+        <strong>【解説】エルニーニョ現象の原因：</strong><br>
+        太平洋赤道付近では、普段は東風（貿易風）によって温かい海水が西（日本・インドネシア側）に押し寄せられています。<br>
+        東風が弱まると、温かい海水が東（南米ペルー沖）へ広がり、冷たい水の湧き上がりが抑えられて東部の海水温が上昇します。これが世界的な異常気象を引き起こします。
+      `;
+      loopElnino();
+    }
+  }
+
+  /* --- 1. 雲のでき方 シミュレーション --- */
+  function loopCloud() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 背景（空グラデーション）
+    let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, '#1e293b');
+    grad.addColorStop(1, '#93c5fd');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 地面
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(0, 320, canvas.width, 40);
+
+    if (state.rising && state.height < 2500) {
+      state.height += 15;
+      state.temp -= 0.15;
+      if (state.temp <= state.dewPoint) {
+        state.cloudSize = Math.min(60, state.cloudSize + 1);
+      }
+    }
+
+    let yPos = 300 - (state.height / 2500) * 220;
+
+    // 空気塊 / 雲の描画
+    ctx.fillStyle = state.temp <= state.dewPoint ? 'rgba(255, 255, 255, 0.9)' : 'rgba(239, 68, 68, 0.6)';
+    ctx.beginPath();
+    ctx.arc(400, yPos, 20 + state.cloudSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (state.cloudSize > 0) {
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('☁️ 雲が発生！', 430 + state.cloudSize, yPos);
+    }
+
+    document.getElementById('status').innerText = 
+      `高度: ${Math.round(state.height)}m | 気温: ${state.temp.toFixed(1)}℃ | 露点: ${state.dewPoint}℃`;
+
+    animId = requestAnimationFrame(loopCloud);
+  }
+
+  /* --- 2. 地震メカニズム シミュレーション --- */
+  function addStrain() {
+    if (state.strain < 100) {
+      state.strain += 20;
+      if (state.strain >= 100) {
+        state.rebound = true;
+        state.shaking = 30;
+      }
+    }
+  }
+
+  function loopEarthquake() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let shakeX = (Math.random() - 0.5) * state.shaking;
+    let shakeY = (Math.random() - 0.5) * state.shaking;
+    if (state.shaking > 0) state.shaking *= 0.9;
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // 海
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(0, 0, canvas.width, 180);
+
+    // プレート（陸側）
+    ctx.fillStyle = '#854d0e';
+    ctx.beginPath();
+    ctx.moveTo(350, 180);
+    ctx.lineTo(800, 180);
+    ctx.lineTo(800, 360);
+    // ひずみで曲がる描写
+    let bend = state.rebound ? 0 : state.strain * 0.8;
+    ctx.lineTo(350 + bend, 360);
+    ctx.fill();
+
+    // プレート（海側）
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.moveTo(0, 200);
+    ctx.lineTo(400, 360);
+    ctx.lineTo(0, 360);
+    ctx.fill();
+
+    ctx.restore();
+
+    document.getElementById('status').innerText = 
+      state.rebound ? '💥 跳ね返り発生！巨大地震がおきました！' : `ひずみ蓄積度: ${state.strain}%`;
+
+    if (state.rebound && state.shaking < 0.5) {
+      state.rebound = false;
+      state.strain = 0;
+    }
+
+    animId = requestAnimationFrame(loopEarthquake);
+  }
+
+  /* --- 3. フェーン現象 シミュレーション --- */
+  function loopFoehn() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 山の描画
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.moveTo(100, 320);
+    ctx.lineTo(400, 80); // 山頂 (標高2000m想定)
+    ctx.lineTo(700, 320);
+    ctx.fill();
+
+    // 地面
+    ctx.fillStyle = '#86efac';
+    ctx.fillRect(0, 320, canvas.width, 40);
+
+    if (state.moving) {
+      if (state.x < 400) { // 登り
+        state.x += 2;
+        state.y -= 1.6;
+        if (state.y < 200) { // 雲・雨発生エリア（露点到達）
+          state.temp -= 0.05; // 凝縮熱により減率が小さい（0.5℃/100m換算）
+          state.rain = true;
+        } else {
+          state.temp -= 0.1; // 乾燥減率（1.0℃/100m換算）
+        }
+      } else if (state.x < 700) { // 降下
+        state.x += 2;
+        state.y += 1.6;
+        state.rain = false;
+        state.temp += 0.1; // 乾燥減率で急速に上昇
+      } else {
+        state.moving = false;
+      }
+    }
+
+    // 雨の描写
+    if (state.rain) {
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        let rx = state.x - 20 + Math.random() * 40;
+        let ry = state.y + Math.random() * 20;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 5, ry + 15);
+        ctx.stroke();
+      }
+    }
+
+    // 空気塊
+    ctx.fillStyle = state.temp > 22 ? '#ef4444' : '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(state.x, state.y, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`${state.temp.toFixed(1)}℃`, state.x - 16, state.y + 4);
+
+    document.getElementById('status').innerText = 
+      `空気の温度: ${state.temp.toFixed(1)}℃ | ${state.x > 400 ? '高温乾燥風（フェーン現象）' : '上昇気流'}`;
+
+    animId = requestAnimationFrame(loopFoehn);
+  }
+
+  /* --- 4. エルニーニョ現象 シミュレーション --- */
+  function setElninoMode(mode) {
+    state.mode = mode;
+    let names = { normal: '通常時', elnino: 'エルニーニョ現象', lanina: 'ラニーニャ現象' };
+    document.getElementById('status').innerText = `モード: ${names[mode]}`;
+  }
+
+  function loopElnino() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 海水温背景グラデーション
+    let grad = ctx.createLinearGradient(100, 0, 700, 0);
+    if (state.mode === 'normal') {
+      grad.addColorStop(0, '#ef4444'); // 西側があたたかい
+      grad.addColorStop(0.6, '#3b82f6');
+      grad.addColorStop(1, '#1e3a8a');  // 東側が冷たい
+    } else if (state.mode === 'elnino') {
+      grad.addColorStop(0, '#ef4444'); 
+      grad.addColorStop(0.7, '#f87171'); // 温水域が東に広がる
+      grad.addColorStop(1, '#3b82f6');
+    } else { // lanina
+      grad.addColorStop(0, '#dc2626'); // 西側がより極端に温かい
+      grad.addColorStop(0.3, '#3b82f6');
+      grad.addColorStop(1, '#172554');  // 東側の冷水が強い
+    }
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(100, 200, 600, 120);
+
+    // 陸地
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(40, 160, 60, 160); // アジア/西側
+    ctx.fillText('アジア側(西)', 40, 150);
+    ctx.fillRect(700, 160, 60, 160); // 南米/東側
+    ctx.fillText('南米側(東)', 700, 150);
+
+    // 貿易風（矢印）
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = state.mode === 'lanina' ? 6 : (state.mode === 'elnino' ? 1 : 3);
+    ctx.beginPath();
+    ctx.moveTo(650, 180);
+    ctx.lineTo(150, 180);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(state.mode === 'elnino' ? '弱まった貿易風 ➔' : '強力な東風（貿易風） ➔', 350, 170);
+
+    // 積乱雲の描画位置
+    let cloudX = state.mode === 'elnino' ? 450 : (state.mode === 'lanina' ? 150 : 220);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.beginPath();
+    ctx.arc(cloudX, 100, 35, 0, Math.PI * 2);
+    ctx.arc(cloudX + 30, 100, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.fillText('上昇気流・雨雲', cloudX - 30, 50);
+
+    animId = requestAnimationFrame(loopElnino);
+  }
+
+  // 初期化起動
+  initSimulation();
+</script>
+</body>
+</html>
