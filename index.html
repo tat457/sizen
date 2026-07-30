@@ -1,417 +1,865 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ビジュアル・サイエンス・ラボ</title>
-    <style>
-        :root {
-            --bg-color: #f0f6fc;
-            --main-font: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-            --primary: #3498db;
-            --primary-hover: #2980b9;
-            --text: #2c3e50;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リアル自然現象サイエンス・ラボ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+    }
 
-        body {
-            font-family: var(--main-font);
-            background-color: var(--bg-color);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
 
-        .container {
-            width: 900px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        header {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        h1 { margin: 0; font-size: 1.5rem; }
-        p { margin: 5px 0 0; color: #7f8c8d; font-size: 0.9rem; }
-
-        .game-area {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 15px;
-            padding: 15px;
-        }
-
-        .scene {
-            background-color: #f9f9f9;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 15px;
-            position: relative;
-            height: 280px;
-        }
-
-        .scene-title {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 1rem;
-            z-index: 10;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #eef2f5;
-            border-radius: 8px;
-        }
-
-        .controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            display: flex;
-            gap: 5px;
-            z-index: 10;
-        }
-
-        .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: background 0.2s;
-        }
-
-        .btn:hover { background: var(--primary-hover); }
-        .btn.active { background: #e74c3c; } /* 停止状態 */
-
-        .data-panel {
-            position: absolute;
-            bottom: 45px;
-            left: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.9);
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-family: monospace;
-            display: flex;
-            justify-content: space-between;
-            border: 1px solid #ccc;
-            pointer-events: none;
-        }
-
-        .annotation {
-            pointer-events: none;
-        }
-    </style>
+    canvas {
+      touch-action: none;
+    }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 p-4 md:p-6">
 
-<div class="container">
-    <header>
-        <h1>🔬 ビジュアル・サイエンス・ラボ</h1>
-        <p>画像のような自然現象をシミュレーション。動かして原因を学ぼう！</p>
-    </header>
-
-    <div class="game-area">
-        <!-- 1. 雲のでき方 -->
-        <div class="scene" id="cloudScene">
-            <div class="scene-title">雲のでき方</div>
-            <canvas id="cloudCanvas"></canvas>
-            <div class="data-panel" id="cloudData">地表(0m): 20°C</div>
-            <div class="controls">
-                <button class="btn" id="btnCloudPlay">再生/停止</button>
-                <button class="btn" id="btnCloudReset">リセット</button>
-            </div>
-        </div>
-
-        <!-- 2. 地震メカニズム -->
-        <div class="scene" id="quakeScene">
-            <div class="scene-title">地震メカニズム</div>
-            <canvas id="quakeCanvas"></canvas>
-            <div class="data-panel" id="quakeData">歪み: 0% | 固着域: 安定</div>
-            <div class="controls">
-                <button class="btn" id="btnQuakePlay">再生/停止</button>
-                <button class="btn" id="btnQuakeReset">リセット</button>
-            </div>
-        </div>
-
-        <!-- 3. フェーン現象 -->
-        <div class="scene" id="foehnScene">
-            <div class="scene-title">フェーン現象</div>
-            <canvas id="foehnCanvas"></canvas>
-            <div class="data-panel" id="foehnData">風上(0m): 20°C</div>
-            <div class="controls">
-                <button class="btn" id="btnFoehnPlay">再生/停止</button>
-                <button class="btn" id="btnFoehnReset">リセット</button>
-            </div>
-        </div>
-
-        <!-- 4. エルニーニョ現象 -->
-        <div class="scene" id="elninoScene">
-            <div class="scene-title">エルニーニョ現象</div>
-            <canvas id="elninoCanvas"></canvas>
-            <div class="controls">
-                <button class="btn active" id="btnNormal">通常時</button>
-                <button class="btn" id="btnElnino">エルニーニョ時</button>
-            </div>
-        </div>
+  <!-- ヘッダー -->
+  <header class="max-w-6xl w-full mx-auto mb-4 flex flex-col md:flex-row items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-blue-600/30 text-blue-400 rounded-xl border border-blue-500/30">
+        <i data-lucide="globe" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 via-teal-300 to-amber-300 bg-clip-text text-transparent">
+          リアル自然現象サイエンス・ラボ
+        </h1>
+        <p class="text-xs text-slate-400">厳密な物理法則モデルと高精細グラフィックによるインタラクティブ学習環境</p>
+      </div>
     </div>
-</div>
+
+    <!-- タブ切り替え -->
+    <nav class="flex flex-wrap gap-2 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
+      <button onclick="switchTab('cloud')" id="tab-cloud" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        <i data-lucide="cloud-rain" class="w-4 h-4"></i> 雲の形成
+      </button>
+      <button onclick="switchTab('earthquake')" id="tab-earthquake" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        <i data-lucide="activity" class="w-4 h-4"></i> 地震メカニズム
+      </button>
+      <button onclick="switchTab('foehn')" id="tab-foehn" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        <i data-lucide="mountain" class="w-4 h-4"></i> フェーン現象
+      </button>
+      <button onclick="switchTab('elnino')" id="tab-elnino" class="tab-btn flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        <i data-lucide="waves" class="w-4 h-4"></i> エルニーニョ
+      </button>
+    </nav>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+    
+    <!-- ビジュアルキャンバス (2カラム分) -->
+    <div class="lg:col-span-2 flex flex-col gap-4">
+      <div class="glass-panel rounded-2xl p-2 relative overflow-hidden flex flex-col items-center justify-center border border-slate-800 shadow-2xl">
+        <canvas id="simCanvas" width="850" height="480" class="w-full h-auto rounded-xl bg-slate-950 border border-slate-800/80"></canvas>
+      </div>
+      
+      <!-- 下部リアルタイム数値インジケーター -->
+      <div id="metricsBar" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- 動的にJavaScriptから挿入 -->
+      </div>
+    </div>
+
+    <!-- サイドパネル: 操作＆解説 -->
+    <div class="flex flex-col gap-4">
+      
+      <!-- 操作コントロール -->
+      <div class="glass-panel p-5 rounded-2xl flex flex-col gap-4">
+        <h2 class="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-slate-700/50 pb-2">
+          <i data-lucide="sliders" class="w-5 h-5 text-teal-400"></i> シミュレーション操作
+        </h2>
+        
+        <div id="controlsContainer" class="flex flex-col gap-4">
+          <!-- 各現象用コントロールをJSで注入 -->
+        </div>
+      </div>
+
+      <!-- メカニズム解説 -->
+      <div class="glass-panel p-5 rounded-2xl flex flex-col gap-3 flex-grow">
+        <h2 class="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-slate-700/50 pb-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-blue-400"></i> 科学的メカニズム解説
+        </h2>
+        <div id="explanationContainer" class="text-sm text-slate-300 leading-relaxed flex flex-col gap-2">
+          <!-- 解説テキストをJSで注入 -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="max-w-6xl w-full mx-auto mt-6 text-center text-xs text-slate-500 py-2">
+    自然現象インタラクティブ・シミュレーター — High Precision Physics & Atmospheric Engine
+  </footer>
 
 <script>
-    // 汎用描画関数、定数
-    const getCtx = id => document.getElementById(id).getContext('2d');
+  lucide.createIcons();
 
-    /* --- 1. 雲のでき方 (Cloud Formation) --- */
-    (function() {
-        const canvas = document.getElementById('cloudCanvas');
-        const ctx = canvas.getContext('2d');
-        const dataPanel = document.getElementById('cloudData');
-        const W = canvas.width = 420; const H = canvas.height = 250;
-        let running = false, time = 0, state = 'reset';
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  let currentTab = 'cloud';
+  let animId = null;
+  let particles = [];
+  let cloudPuffs = [];
+  let simState = {};
 
-        const LCL = 1200; // 凝結レベル（メートル）
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-600/30');
+      btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/50');
+    });
 
-        function drawBaseScene(t) {
-            ctx.clearRect(0, 0, W, H);
-            // 空のグラデーション
-            let sky = ctx.createLinearGradient(0, 0, 0, H);
-            sky.addColorStop(0, '#a1c4fd'); sky.addColorStop(1, '#c2e9fb');
-            ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+    const activeBtn = document.getElementById(`tab-${tab}`);
+    activeBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/50');
+    activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-600/30');
 
-            // 山と地表
-            ctx.fillStyle = '#6ab04c'; ctx.beginPath(); ctx.moveTo(0, H); ctx.lineTo(150, H - 120); ctx.lineTo(300, H); ctx.fill();
-            ctx.fillStyle = '#228b22'; ctx.fillRect(0, H - 10, W, 10);
+    initSimulation();
+  }
 
-            // アノテーション
-            ctx.font = '12px Arial'; ctx.fillStyle = '#333';
-            ctx.fillText('上昇気流 (Updraft)', 10, 50);
-            ctx.fillText('水蒸気 (Water Vapor)', 10, 200);
-            
-            // 凝結レベル線
-            ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-            const lclY = H - (LCL/2000) * (H-10);
-            ctx.beginPath(); ctx.moveTo(0, lclY); ctx.lineTo(W, lclY); ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillText('凝結レベル (LCL)', 10, lclY - 5);
-        }
+  class Particle {
+    constructor(x, y, vx, vy, color, radius, life = 100) {
+      this.x = x;
+      this.y = y;
+      this.vx = vx;
+      this.vy = vy;
+      this.color = color;
+      this.radius = radius;
+      this.life = life;
+      this.maxLife = life;
+      this.alpha = 1;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life--;
+      this.alpha = Math.max(0, this.life / this.maxLife);
+    }
+    draw(context) {
+      context.save();
+      context.globalAlpha = this.alpha;
+      context.fillStyle = this.color;
+      context.beginPath();
+      context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+  }
 
-        function drawCloudAndAir(t) {
-            if (!running) return;
-            const tScaled = t / 100;
-            const h_m = Math.min(1900, tScaled * 20); // 1.9kmまで
-            const airX = Math.min(150, tScaled * 1.5);
-            const airY = H - (h_m / 2000) * (H-10) - 10;
+  // リアルな積雲（もこもこした雲パフ）描画クラス
+  class CloudPuff {
+    constructor(x, y, radius) {
+      this.x = x;
+      this.y = y;
+      this.baseRadius = radius;
+      this.radius = radius;
+      this.alpha = 0.1;
+      this.targetAlpha = 0.85;
+      this.offsetAngle = Math.random() * Math.PI * 2;
+    }
+    update() {
+      if (this.alpha < this.targetAlpha) {
+        this.alpha += 0.02;
+      }
+      this.radius = this.baseRadius + Math.sin(Date.now() * 0.002 + this.offsetAngle) * 2;
+    }
+    draw(context) {
+      context.save();
+      context.globalAlpha = this.alpha;
 
-            // 空気塊
-            ctx.fillStyle = h_m < LCL ? 'rgba(52, 152, 219, 0.6)' : 'rgba(255, 255, 255, 0.9)';
-            ctx.beginPath(); ctx.arc(airX, airY, 15, 0, Math.PI * 2); ctx.fill();
+      // 雲パフの3D的な立体グラデーション（上面ハイライト、下面影）
+      let grad = context.createRadialGradient(
+        this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.1,
+        this.x, this.y, this.radius
+      );
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.65, '#e2e8f0');
+      grad.addColorStop(1, 'rgba(148, 163, 184, 0.4)');
 
-            // 雲の発生（LCL以上）
-            if (h_m > LCL) {
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.beginPath();
-                ctx.arc(airX+20, airY-10, 30, 0, Math.PI*2); ctx.arc(airX-10, airY-20, 25, 0, Math.PI*2);
-                ctx.arc(airX+40, airY-20, 25, 0, Math.PI*2); ctx.fill();
-            }
+      context.fillStyle = grad;
+      context.beginPath();
+      context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+  }
 
-            // データ更新
-            dataPanel.innerText = `高度: ${Math.round(h_m)}m | 状態: ${h_m < LCL ? '水蒸気' : '凝結(雲)'}`;
-        }
+  function initSimulation() {
+    if (animId) cancelAnimationFrame(animId);
+    particles = [];
+    cloudPuffs = [];
+    
+    const controls = document.getElementById('controlsContainer');
+    const explanation = document.getElementById('explanationContainer');
+    const metrics = document.getElementById('metricsBar');
 
-        function loop() { drawBaseScene(time); drawCloudAndAir(time); time++; requestAnimationFrame(loop); }
-        loop();
+    if (currentTab === 'cloud') {
+      simState = {
+        altitude: 0,        // m (0 ~ 2500m)
+        temp: 25.0,         // ℃ (地表)
+        dewPoint: 15.0,     // 露点 (1000mで到達)
+        pressure: 1013,     // hPa
+        isRising: false,
+        condensationHeight: 1000 // m
+      };
 
-        document.getElementById('btnCloudPlay').onclick = function() { running = !running; this.classList.toggle('active'); };
-        document.getElementById('btnCloudReset').onclick = function() { running = false; time = 0; drawBaseScene(0); document.getElementById('btnCloudPlay').classList.remove('active'); dataPanel.innerText = "地表(0m): 20°C"; };
-    })();
+      controls.innerHTML = `
+        <button id="btnRise" onclick="simState.isRising = !simState.isRising" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 font-bold text-white rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+          <i data-lucide="arrow-up-circle"></i> 空気の断熱上昇を切り替え
+        </button>
+        <button onclick="initSimulation()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> リセット
+        </button>
+      `;
 
-    /* --- 2. 地震メカニズム (Earthquake) --- */
-    (function() {
-        const canvas = document.getElementById('quakeCanvas');
-        const ctx = canvas.getContext('2d');
-        const dataPanel = document.getElementById('quakeData');
-        const W = canvas.width = 420; const H = canvas.height = 250;
-        let running = false, strain = 0, shaking = 0, state = 'reset';
+      explanation.innerHTML = `
+        <p><strong class="text-cyan-400">1. 断熱膨張 (乾燥断熱減率):</strong> 上昇する空気塊は気圧低下により膨張し、熱を消費して約1.0℃/100mのペースで急冷します。</p>
+        <p><strong class="text-blue-400">2. 露点高度 (LCL) と凝縮:</strong> 気温が露点(15℃)に達する高度(1000m)で飽和し、透明な水蒸気が「雲粒（微小な水滴）」へと状態変化（凝縮）を始めます。</p>
+        <p><strong class="text-teal-400">3. 潜熱放出と雲の発達 (湿潤断熱減率):</strong> 水蒸気が凝縮する際「水蒸気潜熱」を放つため、凝縮後の冷却は緩やかになり(約0.5℃/100m)、力強い積雲（わた雲）へと成長します。</p>
+      `;
 
-        function drawBaseScene(s) {
-            ctx.clearRect(0, 0, W, H);
-            // 陸側プレート
-            ctx.fillStyle = '#a1887f'; ctx.beginPath(); ctx.moveTo(0, 100); ctx.lineTo(250, 100); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
-            // 海側プレート
-            ctx.fillStyle = '#546e7a'; ctx.beginPath(); ctx.moveTo(250, 100); ctx.lineTo(W, 100); ctx.lineTo(W, H); ctx.fill();
-            // 海面
-            ctx.fillStyle = 'rgba(52, 152, 219, 0.4)'; ctx.fillRect(0, 0, W, 100);
+      metrics.innerHTML = `
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">高度</div><div id="m-alt" class="text-lg font-bold text-cyan-400">0 m</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">空気の気温</div><div id="m-temp" class="text-lg font-bold text-amber-400">25.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">露点温度</div><div id="m-dew" class="text-lg font-bold text-indigo-400">15.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">大気状態</div><div id="m-state" class="text-lg font-bold text-emerald-400">未飽和（透明）</div></div>
+      `;
 
-            // アノテーション
-            ctx.font = '11px Arial'; ctx.fillStyle = '#fff';
-            ctx.fillText('陸側プレート', 50, 150); ctx.fillText('海側プレート', 280, 180);
-            ctx.fillText('歪みの蓄積', 160, 220);
+      loopCloud();
+    }
+    else if (currentTab === 'earthquake') {
+      simState = {
+        strain: 0,          // 0 - 100%
+        isAutoSubducting: false,
+        earthquakeActive: false,
+        seismicWaves: [],
+        tsunamiHeight: 0
+      };
 
-            // 固着域の描画（歪みに応じて色と太さが変わる）
-            ctx.strokeStyle = `rgb(${255}, ${255 - s*2.5}, 0)`;
-            ctx.lineWidth = 3 + s/10;
-            ctx.beginPath(); ctx.moveTo(250, 100); ctx.lineTo(W - (W-250)/2, (100+H)/2); ctx.stroke();
-            ctx.lineWidth = 1; ctx.setLineDash([]);
-        }
+      controls.innerHTML = `
+        <button onclick="addEarthquakeStrain(20)" class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 font-bold text-white rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+          <i data-lucide="arrow-down-right"></i> 海側プレートを沈み込ませる (+20%)
+        </button>
+        <button id="btnAutoSubduct" onclick="simState.isAutoSubducting = !simState.isAutoSubducting" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+          <i data-lucide="play"></i> 連続沈み込み（自動）
+        </button>
+        <button onclick="initSimulation()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> リセット
+        </button>
+      `;
 
-        function play() {
-            if (!running) return;
-            strain += 0.5;
-            if (strain > 100) { // 跳ね返り発動
-                strain = 0; shaking = 20;
-            }
-            drawBaseScene(strain);
+      explanation.innerHTML = `
+        <p><strong class="text-amber-400">1. 明確なプレート境界 (固着域):</strong> 沈み込む「海洋プレート」と引き込まれる「陸側プレート」の接触面（固着域）にひずみが溜まります。</p>
+        <p><strong class="text-orange-400">2. 海溝と陸側プレートの引き込み:</strong> 海洋プレートの沈み込みに伴い、境界付近の陸側先端部が下方へ強く引っ張られて変形します。</p>
+        <p><strong class="text-red-400">3. 弾性リバウンド（津波・地震波）:</strong> ひずみが限界(100%)を超えると固着域が破壊され、陸側プレートが一気に跳ね上がり、巨大地震波と海面急上昇（津波）を発生させます。</p>
+      `;
 
-            // 振動
-            if (shaking > 0) {
-                const dx = (Math.random()-0.5) * shaking; const dy = (Math.random()-0.5) * shaking;
-                ctx.translate(dx, dy); shaking *= 0.9;
-            }
+      metrics.innerHTML = `
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">固着域ひずみ</div><div id="m-strain" class="text-lg font-bold text-amber-400">0 %</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">プレート境界状態</div><div id="m-pstatus" class="text-lg font-bold text-emerald-400">固着・歪み蓄積中</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">マグニチュード</div><div id="m-mag" class="text-lg font-bold text-slate-400">--</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">津波高度</div><div id="m-tsunami" class="text-lg font-bold text-slate-400">0.0 m</div></div>
+      `;
 
-            dataPanel.innerText = `歪み: ${Math.round(strain)}% | 固着域: ${strain > 80 ? '限界近し' : '安定'}`;
-            requestAnimationFrame(play);
-        }
+      loopEarthquake();
+    }
+    else if (currentTab === 'foehn') {
+      simState = {
+        airProgress: 0, // 0.0 to 1.0 (海側0m -> 雲発生1000m -> 山頂3000m -> 風下平野0m)
+        isRunning: false,
+        particles: []
+      };
 
-        drawBaseScene(0);
-        document.getElementById('btnQuakePlay').onclick = function() { running = !running; this.classList.toggle('active'); play(); };
-        document.getElementById('btnQuakeReset').onclick = function() { running = false; strain = 0; shaking = 0; drawBaseScene(0); dataPanel.innerText = "歪み: 0% | 固着域: 安定"; };
-    })();
+      controls.innerHTML = `
+        <button onclick="simState.isRunning = true" class="w-full py-3 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 font-bold text-white rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+          <i data-lucide="wind"></i> 湿った風を送信（山越え開始）
+        </button>
+        <button onclick="initSimulation()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i> リセット
+        </button>
+      `;
 
-    /* --- 3. フェーン現象 (Foehn) --- */
-    (function() {
-        const canvas = document.getElementById('foehnCanvas');
-        const ctx = canvas.getContext('2d');
-        const dataPanel = document.getElementById('foehnData');
-        const W = canvas.width = 420; const H = canvas.height = 250;
-        let running = false, time = 0;
+      explanation.innerHTML = `
+        <p><strong class="text-blue-400">1. 風上上昇 (乾燥断熱 1.0℃/100m):</strong> 20.0℃の風上空気(0m)が山に衝突して上昇。1000mで10.0℃になり露点に到達します。</p>
+        <p><strong class="text-teal-400">2. 降雨と潜熱加熱 (湿潤断熱 0.5℃/100m):</strong> 1000m〜3000mでは雨を降らせつつ潜熱（水蒸気の凝縮熱）を得るため、冷却が緩やかになり山頂(3000m)で0.0℃になります。</p>
+        <p><strong class="text-rose-400">3. 風下吹き降り (乾燥断熱 1.0℃/100m):</strong> 水分を失ったカラカラの乾燥空気は、山頂(0℃)から麓(0m)まで急激に1.0℃/100mで昇温！麓では<span class="text-rose-400 font-bold">30.0℃（風上より10℃も高温）</span>となります！</p>
+      `;
 
-        const WINDWARD_T = 20; // 風上の気温
+      metrics.innerHTML = `
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">風上（海側0m）</div><div class="text-lg font-bold text-cyan-400">20.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">山頂（3000m）</div><div id="m-f-top" class="text-lg font-bold text-blue-300">0.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">風下（平野0m）</div><div id="m-f-down" class="text-lg font-bold text-rose-400">30.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">現在地気温</div><div id="m-f-cur" class="text-lg font-bold text-amber-300">20.0 ℃</div></div>
+      `;
 
-        function drawBaseScene() {
-            ctx.clearRect(0, 0, W, H);
-            let sky = ctx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#e0f7fa'); sky.addColorStop(1, '#b2ebf2');
-            ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      loopFoehn();
+    }
+    else if (currentTab === 'elnino') {
+      simState = {
+        mode: 'normal',
+        particles: []
+      };
 
-            // 地形
-            ctx.fillStyle = '#8d6e63'; ctx.beginPath(); ctx.moveTo(0, H); ctx.lineTo(W/2, 100); ctx.lineTo(W, H); ctx.fill();
-            ctx.fillStyle = '#388e3c'; ctx.fillRect(0, H-10, W, 10);
+      controls.innerHTML = `
+        <div class="grid grid-cols-1 gap-2">
+          <button onclick="setElninoMode('normal')" id="mode-normal" class="el-mode-btn py-2.5 px-4 bg-blue-600 text-white font-bold rounded-xl shadow transition flex items-center justify-between">
+            <span>平常時（正常な貿易風）</span> <i data-lucide="check-circle" class="w-4 h-4"></i>
+          </button>
+          <button onclick="setElninoMode('elnino')" id="mode-elnino" class="el-mode-btn py-2.5 px-4 bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold rounded-xl transition flex items-center justify-between">
+            <span>エルニーニョ現象（貿易風衰退）</span> <i data-lucide="flame" class="w-4 h-4 text-rose-400"></i>
+          </button>
+          <button onclick="setElninoMode('lanina')" id="mode-lanina" class="el-mode-btn py-2.5 px-4 bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold rounded-xl transition flex items-center justify-between">
+            <span>ラニーニャ現象（貿易風強化）</span> <i data-lucide="snowflake" class="w-4 h-4 text-cyan-400"></i>
+          </button>
+        </div>
+      `;
 
-            // アノテーション
-            ctx.font = '12px Arial'; ctx.fillStyle = '#333';
-            ctx.fillText('風上 (Windward)', 10, H - 30); ctx.fillText('風下 (Leeward)', W - 90, H - 30);
-            ctx.fillText('地形性降雨', W/2 - 70, 130); ctx.fillText('乾燥した下降気流', W/2 + 20, 130);
-        }
+      explanation.innerHTML = `
+        <p><strong class="text-blue-400">1. 平常時:</strong> 東からの貿易風により、温かい表層海水が西側（インドネシア沖）に吹き寄せられ、東側（ペルー沖）では深海から冷水が湧き上がります。</p>
+        <p><strong class="text-rose-400">2. エルニーニョ現象:</strong> 貿易風が弱まると、西に溜まっていた温水が東側へ戻り、東部太平洋の海面水温が上昇。湧昇流が遮断されます。</p>
+        <p><strong class="text-cyan-400">3. ラニーニャ現象:</strong> 貿易風が強まりすぎると、西側への温水集中と東側での冷水湧き上がりが強まり、ペルー沖が異常低温になります。</p>
+      `;
 
-        function drawAirAndTemp(t) {
-            if (!running) return;
-            drawBaseScene(); // 背景を再描画
+      metrics.innerHTML = `
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">貿易風</div><div id="m-wind" class="text-lg font-bold text-amber-400">標準 (東風)</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">ペルー沖水温</div><div id="m-sst" class="text-lg font-bold text-blue-400">±0.0 ℃</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">積乱雲活発域</div><div id="m-cloud-loc" class="text-lg font-bold text-emerald-400">西太平洋</div></div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800 text-center"><div class="text-xs text-slate-400">冷水湧昇流</div><div id="m-upwelling" class="text-lg font-bold text-cyan-400">正常</div></div>
+      `;
 
-            const tScaled = t / 100;
-            const x = Math.min(W, tScaled * 2);
-            let h_m, temp, state;
+      loopElnino();
+    }
+    
+    lucide.createIcons();
+  }
 
-            if (x < W/2) { // 登り
-                h_m = (x / (W/2)) * 1000;
-                temp = WINDWARD_T - (h_m/100) * 0.5; // 0.5°C/100m
-                state = "登り (湿潤)";
-                // 雨
-                if (t % 10 < 5) {
-                    ctx.strokeStyle = 'blue'; ctx.beginPath();
-                    for(let i=0; i<5; i++) { ctx.moveTo(x-20+i*5, 100+i*5); ctx.lineTo(x-20+i*5, 115+i*5); } ctx.stroke();
-                }
-            } else { // 降下
-                h_m = 1000 - ((x - W/2) / (W/2)) * 1000;
-                temp = WINDWARD_T - 5 + ((W/2 - h_m/10)/100) * 1.0; // 1.0°C/100m
-                temp = WINDWARD_T - 5 + (x-W/2)/(W/2) * 10;
-                temp = 15 + ((1000 - h_m) / 100); // 乾燥断熱
-                temp = WINDWARD_T - 5 + (1000-h_m)/100; // これは間違い、再計算
+  // ==========================================
+  // 1. ☁️ 雲の形成（高精度プロセジュラル・パフ描画）
+  // ==========================================
+  function loopCloud() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // 山頂(1000m)で15°C、そこから100mにつき1°C上昇
-                temp = (WINDWARD_T - 5) + ( (1000 - h_m) / 100 );
-                state = "降下 (乾燥)";
-            }
+    // 物理シミュレーション演算
+    if (simState.isRising && simState.altitude < 2400) {
+      simState.altitude += 5;
+      
+      // 乾燥断熱(1.0℃/100m) vs 湿潤断熱(0.5℃/100m)
+      if (simState.altitude <= simState.condensationHeight) {
+        simState.temp = 25.0 - (simState.altitude / 100);
+      } else {
+        let baseTemp = 25.0 - (1000 / 100); // 15.0℃
+        let excessAlt = simState.altitude - 1000;
+        simState.temp = baseTemp - (excessAlt * 0.005);
+      }
+    }
 
-            // 空気塊
-            const y = H - (h_m / 1000) * (H-100) - 20;
-            ctx.fillStyle = x < W/2 ? 'blue' : 'red';
-            ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
+    // 上空のグラデーション（高度に応じた色変化）
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, '#0f172a');
+    skyGrad.addColorStop(0.6, '#1e3a8a');
+    skyGrad.addColorStop(1, '#38bdf8');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 温度ゲージ表示（キャンバス上）
-            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x-25, y-35, 50, 15);
-            ctx.fillStyle = 'white'; ctx.fillText(`${temp.toFixed(1)}°C`, x-20, y-25);
+    // 高度基準線 (露点高度 LCL = 1000m)
+    let lclY = 400 - (1000 / 2500) * 320; // 272px
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, lclY);
+    ctx.lineTo(canvas.width, lclY);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-            dataPanel.innerText = `位置: ${Math.round(x)}m | 高度: ${Math.round(h_m)}m | 状態: ${state}`;
-            time++;
-            requestAnimationFrame(() => drawAirAndTemp(time));
-        }
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('── 露点高度 (LCL = 1000m / 露点15.0℃到達ライン) ──', 20, lclY - 8);
 
-        drawBaseScene();
-        document.getElementById('btnFoehnPlay').onclick = function() { running = !running; this.classList.toggle('active'); drawAirAndTemp(time); };
-        document.getElementById('btnFoehnReset').onclick = function() { running = false; time = 0; drawBaseScene(); dataPanel.innerText = "風上(0m): 20°C"; };
-    })();
+    // 地面描画
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(0, 420, canvas.width, 60);
 
-    /* --- 4. エルニーニョ現象 (El Niño) --- */
-    (function() {
-        const canvas = document.getElementById('elninoCanvas');
-        const ctx = canvas.getContext('2d');
-        const W = canvas.width = 420; const H = canvas.height = 250;
-        let mode = 'normal';
+    // 上昇空気塊の位置計算
+    let airY = 400 - (simState.altitude / 2500) * 320;
+    let airX = 425;
 
-        function drawScene() {
-            ctx.clearRect(0, 0, W, H);
-            // 太平洋のベースグラデーション（水温）
-            let seaGrad = ctx.createLinearGradient(0, 0, W, 0);
-            if (mode === 'normal') {
-                seaGrad.addColorStop(0, '#e74c3c'); // 西(インドネシア)側が赤い
-                seaGrad.addColorStop(0.7, '#3498db'); // 東(ペルー)側が青い
-            } else {
-                seaGrad.addColorStop(0, '#e74c3c');
-                seaGrad.addColorStop(0.5, '#e74c3c'); // 赤い部分が中央に広がる
-                seaGrad.addColorStop(1, '#3498db');
-            }
-            ctx.fillStyle = seaGrad; ctx.fillRect(50, 100, W - 100, 100);
+    // 水蒸気粒子（1000m未満）
+    if (simState.altitude < 1000) {
+      if (Math.random() < 0.6) {
+        particles.push(new Particle(
+          airX + (Math.random() - 0.5) * 40,
+          airY + (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 0.8,
+          -1 - Math.random(),
+          'rgba(186, 230, 253, 0.6)',
+          3 + Math.random() * 3,
+          40
+        ));
+      }
+    } else {
+      // 1000m以上：もこもこした雲パフの連続生長
+      if (Math.random() < 0.45) {
+        let cloudPuffX = airX + (Math.random() - 0.5) * (60 + (simState.altitude - 1000) * 0.08);
+        let cloudPuffY = airY + (Math.random() - 0.5) * 30;
+        let puffRadius = 16 + Math.random() * 22;
+        cloudPuffs.push(new CloudPuff(cloudPuffX, cloudPuffY, puffRadius));
+      }
+    }
 
-            // 陸地
-            ctx.fillStyle = '#f1c40f'; ctx.fillRect(0, 100, 50, 100); ctx.fillRect(W - 50, 100, 50, 100);
+    // 水蒸気粒子アップデート
+    particles.forEach((p, idx) => {
+      p.update();
+      p.draw(ctx);
+      if (p.life <= 0) particles.splice(idx, 1);
+    });
 
-            // 貿易風（矢印）
-            ctx.strokeStyle = 'white'; ctx.lineWidth = mode === 'normal' ? 4 : 1;
-            ctx.beginPath(); ctx.moveTo(W - 80, 120); ctx.lineTo(80, 120); ctx.lineTo(90, 115); ctx.moveTo(80, 120); ctx.lineTo(90, 125); ctx.stroke();
-            
-            // アノテーション
-            ctx.font = '11px Arial'; ctx.fillStyle = '#fff';
-            ctx.fillText(mode === 'normal' ? '強力な貿易風' : '貿易風が弱まる', W/2 - 40, 115);
-            ctx.fillText('通常時（冷水湧き上がり）', W - 140, 180);
-            ctx.fillStyle = mode === 'elnino' ? '#e74c3c' : '#333';
-            ctx.fillText(mode === 'elnino' ? '海水温アノマリー（高温）' : '', W/2 - 50, 150);
-        }
+    // 雲パフ描画（リアルな積雲クラスタ）
+    cloudPuffs.forEach(puff => {
+      puff.update();
+      puff.draw(ctx);
+    });
 
-        drawScene();
-        document.getElementById('btnNormal').onclick = function() { mode = 'normal'; this.classList.add('active'); document.getElementById('btnElnino').classList.remove('active'); drawScene(); };
-        document.getElementById('btnElnino').onclick = function() { mode = 'elnino'; this.classList.add('active'); document.getElementById('btnNormal').classList.remove('active'); drawScene(); };
-    })();
+    // 空気塊の領域バウンディング表示
+    ctx.strokeStyle = simState.altitude >= 1000 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(244, 63, 94, 0.8)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(airX, airY, 35 + (simState.altitude >= 1000 ? (simState.altitude - 1000) * 0.03 : 0), 0, Math.PI * 2);
+    ctx.stroke();
 
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(
+      simState.altitude >= 1000 ? '☁️ 凝縮中 (雲粒の形成・積雲成長)' : '🔥 未飽和（水蒸気上昇）',
+      airX + 55, airY + 4
+    );
+
+    // メトリクス更新
+    document.getElementById('m-alt').innerText = `${Math.round(simState.altitude)} m`;
+    document.getElementById('m-temp').innerText = `${simState.temp.toFixed(1)} ℃`;
+    document.getElementById('m-dew').innerText = `${simState.dewPoint.toFixed(1)} ℃`;
+    document.getElementById('m-state').innerText = simState.altitude >= 1000 ? '☁️ 飽和・凝縮（雲発生）' : '💧 未飽和（気体）';
+
+    animId = requestAnimationFrame(loopCloud);
+  }
+
+  // ==========================================
+  // 2. 🌋 地震メカニズム（明確なプレート境界＆固着域）
+  // ==========================================
+  function addEarthquakeStrain(val) {
+    if (simState.earthquakeActive) return;
+    simState.strain = Math.min(100, simState.strain + val);
+    if (simState.strain >= 100) {
+      triggerEarthquake();
+    }
+  }
+
+  function triggerEarthquake() {
+    simState.earthquakeActive = true;
+    simState.strain = 100;
+    
+    // 衝撃波リング生成
+    for(let i=0; i<6; i++) {
+      simState.seismicWaves.push({ r: 10, alpha: 1, speed: 5 + i*2.5 });
+    }
+  }
+
+  function loopEarthquake() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (simState.isAutoSubducting && !simState.earthquakeActive) {
+      simState.strain += 0.4;
+      if (simState.strain >= 100) triggerEarthquake();
+    }
+
+    // 画面揺れ演算
+    let shakeX = 0, shakeY = 0;
+    if (simState.earthquakeActive) {
+      shakeX = (Math.random() - 0.5) * 18;
+      shakeY = (Math.random() - 0.5) * 18;
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // 海洋水域
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(0, 0, canvas.width, 180);
+
+    // 海底地形（海溝 Trench）
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 180, canvas.width, 300);
+
+    // 海洋プレート (Pacific Plate)
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(0, 200);
+    ctx.lineTo(440, 390);
+    ctx.lineTo(340, 480);
+    ctx.lineTo(0, 480);
+    ctx.closePath();
+    ctx.fill();
+
+    // 沈み込みベクトル矢印
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(80, 210); ctx.lineTo(240, 310);
+    ctx.stroke();
+    // 矢印の頭
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(240, 310, 5, 0, Math.PI*2);
+    ctx.fill();
+
+    // 陸側プレート (Continental Plate - 曲げ変形)
+    let bendOffset = (simState.strain / 100) * 70; // 引き込まれる量
+    if (simState.earthquakeActive) bendOffset *= 0.1; // 跳ね返り
+
+    ctx.fillStyle = '#451a03';
+    ctx.beginPath();
+    ctx.moveTo(850, 140);
+    ctx.lineTo(850, 480);
+    ctx.lineTo(340, 480);
+    ctx.lineTo(440, 390);
+    // 先端の巻き込まれベジェ
+    ctx.quadraticCurveTo(400 + bendOffset * 0.4, 300 + bendOffset, 380, 180);
+    ctx.closePath();
+    ctx.fill();
+
+    // ★★★ プレート境界（固着域 / Fault Boundary Line）の強調表示 ★★★
+    let strainGlow = simState.strain / 100;
+    ctx.strokeStyle = `rgba(239, 68, 68, ${0.4 + strainGlow * 0.6})`;
+    ctx.lineWidth = 6 + strainGlow * 6;
+    ctx.beginPath();
+    ctx.moveTo(380, 180);
+    ctx.lineTo(440, 390);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(380, 180);
+    ctx.lineTo(440, 390);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 地震波（断熱破砕から同心円）
+    simState.seismicWaves.forEach((wave, idx) => {
+      ctx.strokeStyle = `rgba(239, 68, 68, ${wave.alpha})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(420, 330, wave.r, 0, Math.PI * 2);
+      ctx.stroke();
+      wave.r += wave.speed;
+      wave.alpha -= 0.015;
+      if (wave.alpha <= 0) simState.seismicWaves.splice(idx, 1);
+    });
+
+    // 海面の変形（津波 Tsunami）
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
+    ctx.beginPath();
+    ctx.moveTo(0, 180);
+    for (let x = 0; x <= canvas.width; x += 15) {
+      let waveH = 0;
+      if (simState.earthquakeActive && x > 300) {
+        waveH = Math.sin((x + Date.now() * 0.02) * 0.04) * 28;
+      }
+      ctx.lineTo(x, 180 - waveH);
+    }
+    ctx.lineTo(canvas.width, 480);
+    ctx.lineTo(0, 480);
+    ctx.fill();
+
+    ctx.restore();
+
+    // ★★★ オンキャンバス明確ラベル指示 ★★★
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('🌊 海洋プレート (沈み込み)', 60, 260);
+
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('⛰️ 陸側プレート (引き込まれ・ひずみ蓄積)', 500, 260);
+
+    ctx.fillStyle = '#ef4444';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('⚡ プレート境界（固着域）', 390, 290);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('📍 海溝 (Trench)', 330, 165);
+
+    // 地震収束
+    if (simState.earthquakeActive && simState.seismicWaves.length === 0) {
+      simState.earthquakeActive = false;
+      simState.strain = 0;
+    }
+
+    // メトリクス更新
+    document.getElementById('m-strain').innerText = `${Math.round(simState.strain)} %`;
+    document.getElementById('m-pstatus').innerText = simState.earthquakeActive ? '💥 震源断層スリップ（跳ね返り）' : (simState.strain > 70 ? '⚠️ ひずみ限界近傍' : 'ひずみ蓄積中');
+    document.getElementById('m-mag').innerText = simState.earthquakeActive ? 'M 8.6 巨大地震' : '--';
+    document.getElementById('m-tsunami').innerText = simState.earthquakeActive ? '🌊 津波警報 (高さ 8.5m)' : '0.0 m';
+
+    animId = requestAnimationFrame(loopEarthquake);
+  }
+
+  // ==========================================
+  // 3. ⛰️ フェーン現象（物理的に厳密な温度計算）
+  // ==========================================
+  function loopFoehn() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (simState.isRunning) {
+      simState.airProgress += 0.003;
+      if (simState.airProgress > 1.0) simState.airProgress = 0;
+    }
+
+    let p = simState.airProgress; // 0.0 (海) -> 0.33 (露点1000m) -> 0.5 (山頂3000m) -> 1.0 (風下平野0m)
+
+    // 現在の高度 (m) と温度 (℃) の厳密計算
+    let curAlt = 0;
+    let curTemp = 20.0;
+    let isRain = false;
+
+    if (p <= 0.5) { // 風上側（上昇）
+      curAlt = (p / 0.5) * 3000;
+      if (curAlt <= 1000) {
+        // 乾燥断熱減率 (-1.0℃/100m)
+        curTemp = 20.0 - (curAlt / 100);
+      } else {
+        // 湿潤断熱減率 (-0.5℃/100m + 潜熱)
+        curTemp = 10.0 - ((curAlt - 1000) * 0.005);
+        isRain = true;
+      }
+    } else { // 風下側（降下）
+      let descProgress = (p - 0.5) / 0.5; // 0 to 1
+      curAlt = 3000 * (1.0 - descProgress);
+      // 乾燥断熱昇温 (+1.0℃/100m)
+      curTemp = 0.0 + ((3000 - curAlt) / 100);
+    }
+
+    // 空気塊の座標計算
+    let airX = 80 + p * 680;
+    let airY = 410 - (curAlt / 3000) * 290;
+
+    // 背景描画
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 山脈描画
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(0, 410);
+    ctx.lineTo(80, 410);
+    ctx.lineTo(420, 120); // 山頂 (標高3000m)
+    ctx.lineTo(760, 410);
+    ctx.lineTo(850, 410);
+    ctx.lineTo(850, 480);
+    ctx.lineTo(0, 480);
+    ctx.fill();
+
+    // 稜線ハイライト
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(80, 410);
+    ctx.lineTo(420, 120);
+    ctx.lineTo(760, 410);
+    ctx.stroke();
+
+    // 露点標高1000m線
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    let y1000 = 410 - (1000 / 3000) * 290;
+    ctx.beginPath();
+    ctx.moveTo(0, y1000); ctx.lineTo(canvas.width, y1000);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('露点高度 1000m (凝縮開始点)', 15, y1000 - 5);
+
+    // 雨粒パーティクル生成
+    if (isRain && Math.random() < 0.7) {
+      simState.particles.push(new Particle(airX + (Math.random()-0.5)*30, airY + 10, -0.5, 5, '#38bdf8', 2, 35));
+    }
+
+    simState.particles.forEach((pt, idx) => {
+      pt.update();
+      pt.draw(ctx);
+      if (pt.life <= 0) simState.particles.splice(idx, 1);
+    });
+
+    // 雲（凝縮域 1000m〜3000m）
+    if (p >= 0.16 && p <= 0.5) {
+      ctx.fillStyle = 'rgba(241, 245, 249, 0.8)';
+      ctx.beginPath();
+      ctx.arc(airX - 15, airY - 15, 22, 0, Math.PI * 2);
+      ctx.arc(airX + 10, airY - 12, 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 空気塊ボール
+    let ballColor = p > 0.5 ? '#f43f5e' : (isRain ? '#38bdf8' : '#fbbf24');
+    ctx.fillStyle = ballColor;
+    ctx.beginPath();
+    ctx.arc(airX, airY, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`${curTemp.toFixed(1)}℃`, airX - 18, airY - 24);
+
+    // ★★★ 明確な対比タグ（風上 20℃ vs 風下 30℃） ★★★
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('🌊 風上（海側）: 20.0℃ / 湿潤', 30, 440);
+
+    ctx.fillStyle = '#f43f5e';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('🔥 風下（平野）: 30.0℃ (極度乾燥・+10℃昇温!)', 480, 440);
+
+    // メトリクス更新
+    document.getElementById('m-f-cur').innerText = `${curTemp.toFixed(1)} ℃`;
+
+    animId = requestAnimationFrame(loopFoehn);
+  }
+
+  // ==========================================
+  // 4. 🌊 エルニーニョ / ラニーニャ
+  // ==========================================
+  function setElninoMode(mode) {
+    simState.mode = mode;
+    document.querySelectorAll('.el-mode-btn').forEach(btn => {
+      btn.classList.remove('bg-blue-600', 'text-white');
+      btn.classList.add('bg-slate-800', 'text-slate-300');
+    });
+    const target = document.getElementById(`mode-${mode}`);
+    target.classList.remove('bg-slate-800', 'text-slate-300');
+    target.classList.add('bg-blue-600', 'text-white');
+  }
+
+  function loopElnino() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let seaGrad = ctx.createLinearGradient(120, 0, 730, 0);
+    let offset = 0;
+
+    if (simState.mode === 'normal') {
+      seaGrad.addColorStop(0, '#ef4444');
+      seaGrad.addColorStop(0.5, '#0284c7');
+      seaGrad.addColorStop(1, '#1e3a8a');
+      offset = 0;
+    } else if (simState.mode === 'elnino') {
+      seaGrad.addColorStop(0, '#f97316');
+      seaGrad.addColorStop(0.65, '#ef4444');
+      seaGrad.addColorStop(1, '#0284c7');
+      offset = 180;
+    } else if (simState.mode === 'lanina') {
+      seaGrad.addColorStop(0, '#dc2626');
+      seaGrad.addColorStop(0.3, '#0284c7');
+      seaGrad.addColorStop(1, '#0f172a');
+      offset = -100;
+    }
+
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 海洋描画
+    ctx.fillStyle = seaGrad;
+    ctx.fillRect(120, 220, 610, 180);
+
+    // サーモクライン（水温急変層）
+    ctx.strokeStyle = '#fef08a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(120, 340 + (offset > 0 ? -30 : -10));
+    ctx.bezierCurveTo(350, 340 + (offset * 0.4), 500, 260 + (offset * 0.5), 730, 240 + (offset > 0 ? 50 : -20));
+    ctx.stroke();
+
+    // 冷水湧昇流
+    if (simState.mode !== 'elnino') {
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      let count = simState.mode === 'lanina' ? 4 : 2;
+      for(let i=0; i<count; i++) {
+        let ux = 680 + i*20;
+        ctx.beginPath();
+        ctx.moveTo(ux, 380); ctx.lineTo(ux, 260);
+        ctx.stroke();
+      }
+    }
+
+    // 西大陸・東大陸
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(40, 180, 80, 220);
+    ctx.fillRect(730, 180, 80, 220);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('アジア / インドネシア', 20, 165);
+    ctx.fillText('南米 (ペルー沖)', 730, 165);
+
+    // 貿易風粒子
+    let windSpeed = simState.mode === 'lanina' ? -4.5 : (simState.mode === 'elnino' ? -0.8 : -2.5);
+    if (Math.random() < 0.7) {
+      particles.push(new Particle(720, 180 + Math.random()*20, windSpeed, 0, '#f59e0b', 3, 180));
+    }
+
+    particles.forEach((p, idx) => {
+      p.update();
+      p.draw(ctx);
+      if (p.life <= 0) particles.splice(idx, 1);
+    });
+
+    // 雲クラスタ
+    let cloudX = 220 + offset;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.beginPath();
+    ctx.arc(cloudX, 100, 35, 0, Math.PI * 2);
+    ctx.arc(cloudX - 25, 110, 25, 0, Math.PI * 2);
+    ctx.arc(cloudX + 25, 110, 25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('🌧️ 活発な積乱雲・大雨エリア', cloudX - 60, 50);
+
+    // メトリクス更新
+    document.getElementById('m-wind').innerText = simState.mode === 'lanina' ? '⚡ 非常に強い (東風)' : (simState.mode === 'elnino' ? '⚠️ 弱風・衰退' : '標準 (東風)');
+    document.getElementById('m-sst').innerText = simState.mode === 'lanina' ? '- 2.5 ℃ (著しい低温)' : (simState.mode === 'elnino' ? '+ 3.0 ℃ (著しい高温)' : '± 0.0 ℃');
+    document.getElementById('m-cloud-loc').innerText = simState.mode === 'elnino' ? '太平洋東部・中央' : (simState.mode === 'lanina' ? '極度に西寄り' : '西太平洋');
+    document.getElementById('m-upwelling').innerText = simState.mode === 'elnino' ? '🛑 停止' : (simState.mode === 'lanina' ? '🌊 非常に活発' : '正常');
+
+    animId = requestAnimationFrame(loopElnino);
+  }
+
+  // アプリ起動
+  switchTab('cloud');
 </script>
-
 </body>
 </html>
